@@ -15,8 +15,8 @@
     <PackageTags>email;validation;validator;rfc5321;rfc5322;tld;offline;guard</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/bohirjonakhmedov/EmailGuard</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/bohirjonakhmedov/EmailGuard</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/bohirjon/EmailGuard</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bohirjon/EmailGuard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
     <!-- Build settings -->
