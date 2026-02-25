@@ -10,6 +10,7 @@
     <PackageId>EmailGuard</PackageId>
     <Version>0.0.0-local</Version>
     <Authors>Bohirjon Akhmedov</Authors>
+    <Copyright>Copyright (c) 2026 Bohirjon Akhmedov</Copyright>
     <Description>Zero-dependency, offline email validation for .NET. Three-step pipeline: fast regex guard, RFC 5321/5322 structural validation, and TLD verification against a static IANA list — no network calls required.</Description>
     <PackageTags>email;validation;validator;rfc5321;rfc5322;tld;offline;guard</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -21,7 +22,19 @@
     <!-- Build settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
+
+    <!-- SourceLink: enables step-into debugging for package consumers -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- Symbol package for NuGet.org symbol server -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />

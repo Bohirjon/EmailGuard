@@ -74,7 +74,7 @@ jobs:
 
       # ── Build ──────────────────────────────────────────────────────────
       - name: Build
-        run: dotnet build EmailGuard.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build EmailGuard.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }} -p:ContinuousIntegrationBuild=true
 
       # ── Test ───────────────────────────────────────────────────────────
       - name: Test
@@ -88,13 +88,17 @@ jobs:
       - name: Upload NuGet package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EmailGuard.${{ steps.version.outputs.version }}.nupkg
-          path: ./artifacts/*.nupkg
+          name: EmailGuard.${{ steps.version.outputs.version }}
+          path: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
           retention-days: 30
 
       # ── Publish to NuGet.org ───────────────────────────────────────────
       - name: Publish to NuGet.org
-        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
+          dotnet nuget push ./artifacts/*.snupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
 
       # ── Create GitHub Release ──────────────────────────────────────────
       - name: Create GitHub Release
@@ -104,5 +108,7 @@ jobs:
           name: EmailGuard ${{ steps.version.outputs.version }}
           prerelease: ${{ steps.version.outputs.prerelease }}
           generate_release_notes: true
-          files: ./artifacts/*.nupkg
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
 
