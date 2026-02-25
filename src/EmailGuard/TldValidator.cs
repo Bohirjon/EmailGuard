@@ -1,4 +1,4 @@
-namespace ConsoleApp;
+namespace EmailGuard;
 
 /// <summary>
 /// Validates top-level domains against the IANA Root Zone Database.
@@ -216,4 +216,5 @@ public static class TldValidator
         return ValidTlds.Contains(tld);
     }
 }
+
 

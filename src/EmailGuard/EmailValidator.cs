@@ -2,14 +2,23 @@
 
 using System.Text.RegularExpressions;
 
-namespace ConsoleApp;
+namespace EmailGuard;
 
 /// <summary>
 /// Three-step offline email validator (zero external dependencies):
-///   Step 1 – Quick compiled regex guard (rejects obvious junk)
-///   Step 2 – RFC 5321/5322 structural validation (own implementation)
-///   Step 3 – TLD check against a static IANA list
+/// <list type="number">
+///   <item><description>Quick compiled regex guard — rejects obvious junk</description></item>
+///   <item><description>RFC 5321/5322 structural validation — enforces standard rules</description></item>
+///   <item><description>TLD check against a static IANA list — rejects made-up domains</description></item>
+/// </list>
 /// </summary>
+/// <example>
+/// <code>
+/// var result = EmailValidator.Validate("user@example.com");
+/// if (result == EmailValidationResult.Valid)
+///     Console.WriteLine("Email is valid!");
+/// </code>
+/// </example>
 public static partial class EmailValidator
 {
     // Step 1: Source-generated compiled regex — one @, no whitespace, at least one dot in domain.
@@ -19,13 +28,18 @@ public static partial class EmailValidator
     // RFC 5322 atext characters allowed in the local part (unquoted).
     // Letters, digits, and: ! # $ % & ' * + - / = ? ^ _ ` { | } ~
     private static bool IsAtext(char c) =>
-        c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9'
+        c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9')
             or '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-'
             or '/' or '=' or '?' or '^' or '_' or '`' or '{' or '|' or '}' or '~';
 
     /// <summary>
     /// Validates an email address through all three steps and returns a detailed result.
     /// </summary>
+    /// <param name="email">The email address to validate. May be <see langword="null"/>.</param>
+    /// <returns>
+    /// An <see cref="EmailValidationResult"/> indicating the outcome.
+    /// <see cref="EmailValidationResult.Valid"/> means the address passed every check.
+    /// </returns>
     public static EmailValidationResult Validate(string? email)
     {
         // ── Step 1: Quick guard ──────────────────────────────────────────
@@ -45,6 +59,15 @@ public static partial class EmailValidator
 
         return EmailValidationResult.Valid;
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the email address is valid; otherwise <see langword="false"/>.
+    /// This is a convenience wrapper around <see cref="Validate"/>.
+    /// </summary>
+    /// <param name="email">The email address to validate.</param>
+    /// <returns><see langword="true"/> when the address passes all validation steps.</returns>
+    public static bool IsValid(string? email) =>
+        Validate(email) == EmailValidationResult.Valid;
 
     /// <summary>
     /// RFC 5321/5322 structural validation — enforces:
@@ -156,5 +179,4 @@ public static partial class EmailValidator
         return labelCount >= 2;
     }
 }
-
 

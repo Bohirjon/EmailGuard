@@ -1,0 +1,108 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Publish to NuGet — triggered by pushing a semantic version tag
+#
+#   Stable releases :  git tag v1.0.0  &&  git push origin v1.0.0
+#   Pre-releases    :  git tag v2.0.0-beta.1  &&  git push origin v2.0.0-beta.1
+#
+# The tag name IS the version. The workflow strips the leading "v" and passes
+# it to `dotnet pack -p:Version=<semver>`, so the .nupkg version matches the
+# git tag exactly.
+#
+# Required repository secret:
+#   NUGET_API_KEY — your NuGet.org API key (Settings → Secrets → Actions)
+# ──────────────────────────────────────────────────────────────────────────────
+name: Publish to NuGet
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'          # stable   — v1.0.0, v2.3.1
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'        # pre-rel  — v1.0.0-beta.1, v2.0.0-rc.3
+
+permissions:
+  contents: write          # needed to create GitHub Releases
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  PROJECT_PATH: src/EmailGuard/EmailGuard.csproj
+  NUGET_SOURCE: https://api.nuget.org/v3/index.json
+
+jobs:
+  # ── 1. Build, test, pack ──────────────────────────────────────────────────
+  publish:
+    name: Pack & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ───────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # full history for git-based versioning
+
+      # ── Extract semver from tag ────────────────────────────────────────
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"       # e.g. v1.2.3-beta.1
+          VERSION="${TAG#v}"                    # e.g. 1.2.3-beta.1
+          echo "tag=$TAG"           >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
+
+          # Detect pre-release (contains a hyphen after the patch number)
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "📦 Version: $VERSION (pre-release: $( [[ "$VERSION" == *-* ]] && echo yes || echo no ))"
+
+      # ── Setup .NET ─────────────────────────────────────────────────────
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      # ── Restore ────────────────────────────────────────────────────────
+      - name: Restore
+        run: dotnet restore EmailGuard.sln
+
+      # ── Build ──────────────────────────────────────────────────────────
+      - name: Build
+        run: dotnet build EmailGuard.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      # ── Test ───────────────────────────────────────────────────────────
+      - name: Test
+        run: dotnet test EmailGuard.sln --configuration Release --no-build --verbosity normal
+
+      # ── Pack ───────────────────────────────────────────────────────────
+      - name: Pack
+        run: dotnet pack ${{ env.PROJECT_PATH }} --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} --output ./artifacts
+
+      # ── Upload .nupkg as build artifact ────────────────────────────────
+      - name: Upload NuGet package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmailGuard.${{ steps.version.outputs.version }}.nupkg
+          path: ./artifacts/*.nupkg
+          retention-days: 30
+
+      # ── Publish to NuGet.org ───────────────────────────────────────────
+      - name: Publish to NuGet.org
+        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
+
+      # ── Create GitHub Release ──────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: EmailGuard ${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          generate_release_notes: true
+          files: ./artifacts/*.nupkg
+

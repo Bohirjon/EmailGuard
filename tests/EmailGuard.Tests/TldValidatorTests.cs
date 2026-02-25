@@ -1,4 +1,6 @@
-namespace ConsoleApp.UnitTests;
+using EmailGuard;
+
+namespace EmailGuard.Tests;
 
 /// <summary>
 /// Unit tests for the TldValidator static helper.

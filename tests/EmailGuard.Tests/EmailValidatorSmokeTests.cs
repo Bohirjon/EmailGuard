@@ -1,10 +1,10 @@
-namespace ConsoleApp.UnitTests;
+using EmailGuard;
+
+namespace EmailGuard.Tests;
 
 /// <summary>
 /// Smoke tests — high-level end-to-end sanity checks that the entire
 /// validation pipeline works for the most common real-world scenarios.
-/// These are intentionally broad and overlap with unit tests; the goal
-/// is a fast "did we break anything obvious?" safety net.
 /// </summary>
 public class EmailValidatorSmokeTests
 {
@@ -81,8 +81,6 @@ public class EmailValidatorSmokeTests
     [Fact]
     public void Smoke_WhitespaceEmail_FailsAtFormatNotTld()
     {
-        // Even though "user @bad.zzzzz" has an unknown TLD, the quick
-        // guard (step 1) should reject it before TLD is ever checked.
         var result = EmailValidator.Validate("user @bad.zzzzz");
         Assert.Equal(EmailValidationResult.InvalidFormat, result);
     }
@@ -94,14 +92,12 @@ public class EmailValidatorSmokeTests
     [Fact]
     public void Smoke_MinimalValidEmail_IsValid()
     {
-        // Shortest realistic email: a@b.co  (1-char local, 1-char domain label, 2-char TLD)
         Assert.Equal(EmailValidationResult.Valid, EmailValidator.Validate("a@b.co"));
     }
 
     [Fact]
     public void Smoke_MaxLocalPartLength_IsValid()
     {
-        // 64-char local part is the RFC max
         var local = new string('a', 64);
         var email = $"{local}@example.com";
         Assert.Equal(EmailValidationResult.Valid, EmailValidator.Validate(email));
@@ -132,7 +128,7 @@ public class EmailValidatorSmokeTests
     }
 
     // ────────────────────────────────────────────────────────────────────
-    // Performance – validation should be fast (< 50ms for a single call)
+    // Performance
     // ────────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -173,11 +169,11 @@ public class EmailValidatorSmokeTests
         Assert.Equal(EmailValidationResult.InvalidFormat,
             EmailValidator.Validate("not an email"));
 
+        Assert.Equal(EmailValidationResult.RfcViolation,
+            EmailValidator.Validate("user..name@example.com"));
+
         Assert.Equal(EmailValidationResult.InvalidTld,
             EmailValidator.Validate("user@example.zzzzz"));
-
-        // RfcViolation – consecutive dots in local part pass quick guard but fail MimeKit
-        // (depends on exact MimeKit behaviour; if not reachable, that's also acceptable)
     }
 }
 

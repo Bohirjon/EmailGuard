@@ -1,4 +1,6 @@
-namespace ConsoleApp.UnitTests;
+using EmailGuard;
+
+namespace EmailGuard.Tests;
 
 /// <summary>
 /// Unit tests for the EmailValidator.Validate() three-step pipeline.
@@ -35,16 +37,14 @@ public class EmailValidatorTests
     }
 
     [Fact]
-    public void Validate_MultipleAtSigns_StillPassesQuickGuard()
+    public void Validate_MultipleAtSigns_ReturnsNotValid()
     {
-        // "a@b@c.com" has one or more @, no spaces, dot in domain portion
-        // Quick guard regex allows it; MimeKit (step 2) should reject it.
         var result = EmailValidator.Validate("a@b@c.com");
         Assert.NotEqual(EmailValidationResult.Valid, result);
     }
 
     // ────────────────────────────────────────────────────────────────────
-    // Step 2 – RFC 5321/5322 validation via MimeKit
+    // Step 2 – RFC 5321/5322 structural validation
     // ────────────────────────────────────────────────────────────────────
 
     [Theory]
@@ -53,33 +53,42 @@ public class EmailValidatorTests
     [InlineData(".user@example.com")]          // local part starts with dot
     [InlineData("user.@example.com")]          // local part ends with dot
     [InlineData("user..name@example.com")]     // consecutive dots in local part
-    public void Validate_RfcViolations_ReturnsRfcViolation(string email)
+    public void Validate_RfcViolations_ReturnsNotValid(string email)
     {
-        var result = EmailValidator.Validate(email);
-        // These should fail at step 1 (quick guard) or step 2 (RFC).
-        // Either InvalidFormat or RfcViolation is acceptable – but NOT Valid.
-        Assert.NotEqual(EmailValidationResult.Valid, result);
+        Assert.NotEqual(EmailValidationResult.Valid, EmailValidator.Validate(email));
     }
 
     [Fact]
-    public void Validate_LocalPartExceeds64Chars_ReturnsNotValid()
+    public void Validate_LocalPartExceeds64Chars_ReturnsRfcViolation()
     {
-        // RFC 5321: local part max 64 characters
         var longLocal = new string('a', 65);
         var email = $"{longLocal}@example.com";
-        var result = EmailValidator.Validate(email);
-        Assert.NotEqual(EmailValidationResult.Valid, result);
+        Assert.Equal(EmailValidationResult.RfcViolation, EmailValidator.Validate(email));
     }
 
     [Fact]
-    public void Validate_TotalExceeds254Chars_ReturnsNotValid()
+    public void Validate_TotalExceeds254Chars_ReturnsRfcViolation()
     {
-        // RFC 5321: total address max 254 characters
         var longLocal = new string('a', 64);
         var longDomain = new string('b', 186) + ".com"; // 64 + 1(@) + 190 = 255 > 254
         var email = $"{longLocal}@{longDomain}";
-        var result = EmailValidator.Validate(email);
-        Assert.NotEqual(EmailValidationResult.Valid, result);
+        Assert.Equal(EmailValidationResult.RfcViolation, EmailValidator.Validate(email));
+    }
+
+    [Fact]
+    public void Validate_DomainLabelExceeds63Chars_ReturnsRfcViolation()
+    {
+        var longLabel = new string('a', 64);
+        var email = $"user@{longLabel}.com";
+        Assert.Equal(EmailValidationResult.RfcViolation, EmailValidator.Validate(email));
+    }
+
+    [Theory]
+    [InlineData("user@-example.com")]          // domain label starts with hyphen
+    [InlineData("user@example-.com")]          // domain label ends with hyphen
+    public void Validate_DomainHyphenEdges_ReturnsRfcViolation(string email)
+    {
+        Assert.Equal(EmailValidationResult.RfcViolation, EmailValidator.Validate(email));
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -115,6 +124,28 @@ public class EmailValidatorTests
     }
 
     // ────────────────────────────────────────────────────────────────────
+    // IsValid convenience method
+    // ────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void IsValid_ValidEmail_ReturnsTrue()
+    {
+        Assert.True(EmailValidator.IsValid("user@example.com"));
+    }
+
+    [Fact]
+    public void IsValid_InvalidEmail_ReturnsFalse()
+    {
+        Assert.False(EmailValidator.IsValid("not-an-email"));
+    }
+
+    [Fact]
+    public void IsValid_Null_ReturnsFalse()
+    {
+        Assert.False(EmailValidator.IsValid(null));
+    }
+
+    // ────────────────────────────────────────────────────────────────────
     // Case insensitivity
     // ────────────────────────────────────────────────────────────────────
 
@@ -136,6 +167,7 @@ public class EmailValidatorTests
     [InlineData("user.name@example.com")]
     [InlineData("user-name@example.com")]
     [InlineData("user_name@example.com")]
+    [InlineData("contact_@live.com")]
     public void Validate_SpecialCharsInLocalPart_ReturnsValid(string email)
     {
         Assert.Equal(EmailValidationResult.Valid, EmailValidator.Validate(email));

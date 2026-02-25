@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>EmailGuard</PackageId>
+    <Version>0.0.0-local</Version>
+    <Authors>Bohirjon Akhmedov</Authors>
+    <Description>Zero-dependency, offline email validation for .NET. Three-step pipeline: fast regex guard, RFC 5321/5322 structural validation, and TLD verification against a static IANA list — no network calls required.</Description>
+    <PackageTags>email;validation;validator;rfc5321;rfc5322;tld;offline;guard</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/bohirjonakhmedov/EmailGuard</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bohirjonakhmedov/EmailGuard</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Build settings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>
+
